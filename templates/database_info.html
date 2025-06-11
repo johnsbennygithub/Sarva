@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Database Information{% endblock %}
+
+{% block content %}
+<div class="database-info-container">
+    <h1>Database Information</h1>
+    
+    {% for table_name, table_info in database_data.items() %}
+    <div class="table-section">
+        <h2>{{ table_name }}</h2>
+        <div class="table-stats">
+            <p><strong>Total Records:</strong> {{ table_info.row_count }}</p>
+            <p><strong>Columns:</strong> {{ table_info.columns|join(', ') }}</p>
+        </div>
+        
+        {% if table_info.sample_data %}
+        <div class="table-responsive">
+            <h3>Sample Data (First 5 Rows)</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        {% for column in table_info.columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_info.sample_data %}
+                    <tr>
+                        {% for value in row %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No data available in this table.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+.database-info-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.table-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    padding: 20px;
+}
+
+.table-section h2 {
+    color: #333;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.table-stats {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.table-stats p {
+    margin: 5px 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+h3 {
+    color: #666;
+    font-size: 1.1em;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        margin: 0 -20px;
+        padding: 0 20px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px;
+        font-size: 0.9em;
+    }
+}
+</style>
+{% endblock %} 

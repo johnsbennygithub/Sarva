@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="welcome-section">
+        <h1>Welcome to Sarva Store, {{ current_user.username }}!</h1>
+        <p>Manage your inventory efficiently using the navigation menu above.</p>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.welcome-section {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-section h1 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.2em;
+}
+
+.welcome-section p {
+    color: #666;
+    font-size: 1.2em;
+    line-height: 1.5;
+}
+</style>
+{% endblock %} 

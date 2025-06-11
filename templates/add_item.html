@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Add Item{% endblock %}
+
+{% block content %}
+<div class="add-item-container">
+    <h1>Add New Item</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST" action="{{ url_for('add_item') }}" class="add-item-form">
+        <div class="form-group">
+            <label for="item_name">Item Name:</label>
+            <div class="input-with-suggestions">
+                <input type="text" id="item_name" name="item_name" required autocomplete="off">
+                <div id="suggestions" class="suggestions-dropdown"></div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" min="1" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="item_type">Item Type:</label>
+            <select id="item_type" name="item_type" required>
+                <option value="">Select Type</option>
+                <option value="Boxes">Boxes</option>
+                <option value="Bags">Bags</option>
+                <option value="Cans">Cans</option>
+                <option value="Bottles">Bottles</option>
+                <option value="Packets">Packets</option>
+                <option value="lbs">lbs</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="submit-button">Add Item</button>
+    </form>
+
+    {% if recent_items %}
+    <div class="recent-items">
+        <h3>Last 5 Items Added</h3>
+        <div class="recent-items-grid">
+            {% for item in recent_items %}
+            <div class="recent-item-card">
+                <div class="item-name">{{ item[0] }}</div>
+                <div class="item-details">
+                    <span class="quantity">{{ item[1] }} {{ item[2] }}</span>
+                    <span class="date">{{ item[3] }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.add-item-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.recent-items {
+    margin-top: 30px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.recent-items h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+.recent-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.recent-item-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.recent-item-card .item-name {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.recent-item-card .item-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.recent-item-card .quantity {
+    color: #28a745;
+}
+
+.recent-item-card .date {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemNameInput = document.getElementById('item_name');
+    const itemTypeSelect = document.getElementById('item_type');
+    const suggestionsDiv = document.getElementById('suggestions');
+    let currentSuggestions = [];
+    
+    // Debounce function to limit API calls
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Function to fetch suggestions
+    const fetchSuggestions = debounce(async (searchTerm) => {
+        if (searchTerm.length < 2) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/get-items?term=${encodeURIComponent(searchTerm)}`);
+            const data = await response.json();
+            currentSuggestions = data;
+            
+            if (data.length > 0) {
+                suggestionsDiv.innerHTML = data.map(item => `
+                    <div class="suggestion-item" data-name="${item.item_name}" data-type="${item.item_type}">
+                        <span class="suggestion-name">${item.item_name}</span>
+                        <span class="suggestion-type">${item.item_type}</span>
+                    </div>
+                `).join('');
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
+        }
+    }, 300);
+    
+    // Event listener for input changes
+    itemNameInput.addEventListener('input', (e) => {
+        fetchSuggestions(e.target.value);
+    });
+    
+    // Event listener for suggestion clicks
+    suggestionsDiv.addEventListener('click', (e) => {
+        const suggestionItem = e.target.closest('.suggestion-item');
+        if (suggestionItem) {
+            const name = suggestionItem.dataset.name;
+            const type = suggestionItem.dataset.type;
+            itemNameInput.value = name;
+            itemTypeSelect.value = type;
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.input-with-suggestions')) {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+    
+    // Handle keyboard navigation
+    itemNameInput.addEventListener('keydown', (e) => {
+        const suggestions = suggestionsDiv.querySelectorAll('.suggestion-item');
+        const currentIndex = Array.from(suggestions).findIndex(item => 
+            item.classList.contains('selected'));
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (suggestionsDiv.style.display === 'block') {
+                    const nextIndex = currentIndex < suggestions.length - 1 ? currentIndex + 1 : 0;
+                    suggestions.forEach(s => s.classList.remove('selected'));
+                    suggestions[nextIndex].classList.add('selected');
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                if (suggestionsDiv.style.display === 'block') {
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : suggestions.length - 1;
+                    suggestions.forEach(s => s.classList.remove('selected'));
+                    suggestions[prevIndex].classList.add('selected');
+                }
+                break;
+                
+            case 'Enter':
+                if (suggestionsDiv.style.display === 'block') {
+                    const selectedItem = suggestionsDiv.querySelector('.suggestion-item.selected');
+                    if (selectedItem) {
+                        itemNameInput.value = selectedItem.dataset.name;
+                        itemTypeSelect.value = selectedItem.dataset.type;
+                        suggestionsDiv.style.display = 'none';
+                    }
+                }
+                break;
+        }
+    });
+});
+</script>
+{% endblock %} 

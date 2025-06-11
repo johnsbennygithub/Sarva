@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="shopping-list-container">
+    <h1>Shopping List</h1>
+    
+    <div class="action-buttons no-print">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print List</button>
+        <a href="{{ url_for('download_shopping_list') }}" class="btn btn-success">⬇️ Download as CSV</a>
+        <div class="select-all-container">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="selectAll">
+                <label class="form-check-label" for="selectAll">Select All Items</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th class="no-print">Need to Buy</th>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="{% if item.need_to_buy %}need-to-buy{% endif %}">
+                    <td class="no-print">
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   class="form-check-input need-to-buy-checkbox" 
+                                   data-item-id="{{ item.id }}"
+                                   {% if item.need_to_buy %}checked{% endif %}>
+                        </div>
+                    </td>
+                    <td>{{ item.item_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.item_type }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    /* Regular styles */
+    .shopping-list-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .action-buttons {
+        margin: 20px 0;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .select-all-container {
+        margin-left: auto;
+    }
+
+    .select-all-container .form-check {
+        margin: 0;
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        background-color: transparent;
+        border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+    }
+
+    /* Print styles */
+    @media print {
+        @page {
+            size: auto;
+            margin: 20mm 10mm;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            background: white;
+        }
+
+        .no-print,
+        nav,
+        footer {
+            display: none !important;
+        }
+
+        .shopping-list-container {
+            padding: 0;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .table thead th {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Hide rows that are not marked as need to buy */
+        tr:not(.need-to-buy) {
+            display: none !important;
+        }
+
+        /* Show only needed columns */
+        .table th:first-child,
+        .table td:first-child {
+            display: none;
+        }
+
+        /* Add title for print */
+        .shopping-list-container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Ensure background colors print */
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .select-all-container {
+            margin-left: 0;
+            margin-top: 10px;
+        }
+
+        .select-all-container .form-check {
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.need-to-buy-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    // Function to update need-to-buy status
+    async function updateNeedToBuy(itemId, checked) {
+        try {
+            const response = await fetch(`/toggle-need-to-buy/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                const row = document.querySelector(`[data-item-id="${itemId}"]`).closest('tr');
+                if (data.new_status) {
+                    row.classList.add('need-to-buy');
+                } else {
+                    row.classList.remove('need-to-buy');
+                }
+                return true;
+            } else {
+                throw new Error('Error updating item status');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating item status');
+            return false;
+        }
+    }
+
+    // Handle individual checkbox changes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', async function() {
+            const itemId = this.dataset.itemId;
+            const success = await updateNeedToBuy(itemId, this.checked);
+            
+            if (!success) {
+                this.checked = !this.checked; // Revert the checkbox
+            }
+            
+            // Update select all checkbox state
+            updateSelectAllState();
+        });
+
+        // Initialize need-to-buy class on load
+        if (checkbox.checked) {
+            checkbox.closest('tr').classList.add('need-to-buy');
+        }
+    });
+
+    // Function to update "Select All" checkbox state
+    function updateSelectAllState() {
+        const totalCheckboxes = checkboxes.length;
+        const checkedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked).length;
+        
+        selectAllCheckbox.checked = totalCheckboxes === checkedCheckboxes;
+        selectAllCheckbox.indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
+    }
+
+    // Handle select all checkbox changes
+    selectAllCheckbox.addEventListener('change', async function() {
+        const checked = this.checked;
+        
+        // Disable select all checkbox while processing
+        selectAllCheckbox.disabled = true;
+        
+        // Create an array of promises for all checkbox updates
+        const updatePromises = Array.from(checkboxes).map(async checkbox => {
+            if (checkbox.checked !== checked) {
+                const itemId = checkbox.dataset.itemId;
+                const success = await updateNeedToBuy(itemId, checked);
+                if (success) {
+                    checkbox.checked = checked;
+                }
+                return success;
+            }
+            return true;
+        });
+        
+        // Wait for all updates to complete
+        try {
+            await Promise.all(updatePromises);
+        } catch (error) {
+            console.error('Error updating items:', error);
+        }
+        
+        // Re-enable select all checkbox and update its state
+        selectAllCheckbox.disabled = false;
+        updateSelectAllState();
+    });
+
+    // Initialize select all checkbox state
+    updateSelectAllState();
+});
+</script>
+{% endblock %} 

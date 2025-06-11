@@ -6,7 +6,7 @@ set -o errexit
 pip install -r requirements.txt
 
 # Initialize the database
-python << END
+python << 'END'
 from app import init_db
 init_db()
 END 

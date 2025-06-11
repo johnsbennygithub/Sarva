@@ -17,8 +17,8 @@ login_manager.login_view = 'login'
 
 # Get the absolute path to the directory containing this file
 basedir = os.path.abspath(os.path.dirname(__file__))
-# Create the database path - use /data in production, local path in development
-DATABASE_PATH = os.path.join('/data', 'inventory.db') if os.environ.get('RENDER') else os.path.join(basedir, 'inventory.db')
+# Create the database path in the same directory as app.py
+DATABASE_PATH = os.path.join(basedir, 'inventory.db')
 
 # Database initialization
 def init_db():

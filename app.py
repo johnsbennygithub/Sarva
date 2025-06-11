@@ -8,7 +8,7 @@ import io
 import os
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key in production
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')  # Change this to a secure secret key in production
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -17,8 +17,8 @@ login_manager.login_view = 'login'
 
 # Get the absolute path to the directory containing this file
 basedir = os.path.abspath(os.path.dirname(__file__))
-# Create the database path
-DATABASE_PATH = os.path.join(basedir, 'inventory.db')
+# Create the database path - use /data in production, local path in development
+DATABASE_PATH = os.path.join('/data', 'inventory.db') if os.environ.get('RENDER') else os.path.join(basedir, 'inventory.db')
 
 # Database initialization
 def init_db():
@@ -455,4 +455,5 @@ def database_info():
     return render_template('database_info.html', database_data=database_data)
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug_mode) 
